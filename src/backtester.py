@@ -17,10 +17,13 @@ class SimpleBacktester:
         signal_func should return a Series of 1 (buy), -1 (sell), or 0 (hold).
         """
         self.data['signal'] = signal_func(self.data)
-        self.data['position'] = self.data['signal'].replace(to_replace=0, method='ffill').fillna(0)
+        # Handle signals: 1 (Buy), -1 (Sell), 0 (Hold)
+        # Position is carried forward on 0 signals
+        self.data['position'] = self.data['signal'].replace(0, np.nan).ffill().fillna(0)
         
         # Calculate returns
         self.data['market_return'] = self.data['close'].pct_change()
+        # Strategy return uses position from previous period (execution at next open/close)
         self.data['strategy_return'] = self.data['position'].shift(1) * self.data['market_return']
         
         # Cumulative returns

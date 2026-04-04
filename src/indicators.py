@@ -19,13 +19,23 @@ class Indicators:
         return data.ewm(span=period, adjust=False).mean()
 
     @staticmethod
-    def rsi(data: pd.Series, period: int = 14) -> pd.Series:
-        """Relative Strength Index."""
+    def rsi(data: pd.Series, period: int = 14, method: str = 'wilder') -> pd.Series:
+        """
+        Relative Strength Index.
+        Default uses Wilder's smoothing method (standard).
+        """
         delta = data.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
         
-        rs = gain / loss
+        if method == 'wilder':
+            avg_gain = gain.ewm(alpha=1/period, adjust=False).mean()
+            avg_loss = loss.ewm(alpha=1/period, adjust=False).mean()
+        else: # simple
+            avg_gain = gain.rolling(window=period).mean()
+            avg_loss = loss.rolling(window=period).mean()
+            
+        rs = avg_gain / avg_loss
         return 100 - (100 / (1 + rs))
 
     @staticmethod
